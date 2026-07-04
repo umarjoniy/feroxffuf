@@ -255,6 +255,13 @@ impl FuzzJob {
             );
         }
 
+        if mode == FuzzMode::Sniper && config.fuzz_wordlists.len() > 1 {
+            bail!(
+                "Sniper mode only supports a single wordlist. \
+                 To fuzz using multiple wordlists, please use clusterbomb or pitchfork mode."
+            );
+        }
+
         // Load wordlists
         let wl_args = if !config.fuzz_wordlists.is_empty() {
             config.fuzz_wordlists.clone()
