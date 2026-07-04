@@ -275,7 +275,18 @@ impl FuzzJob {
             // keyword actually drives URL path/query fuzzing -- applying
             // it to e.g. a POST password wordlist would be nonsensical
             // (there's no such thing as "hunter2.php" as a password).
-            if !config.extensions.is_empty() && (config.target_url.contains(keyword) || config.target_url.contains(&keyword.to_lowercase())) {
+            let keyword_lower = keyword.to_lowercase();
+            let has_kw = |s: &str| s.contains(keyword) || s.contains(&keyword_lower);
+            let mut keyword_in_path = false;
+            if let Ok(parsed_url) = url::Url::parse(&config.target_url) {
+                if has_kw(parsed_url.path()) || parsed_url.query().map_or(false, |q| has_kw(q)) {
+                    keyword_in_path = true;
+                }
+            } else {
+                keyword_in_path = has_kw(&config.target_url);
+            }
+
+            if !config.extensions.is_empty() && keyword_in_path {
                 entries = crate::fuzz::input::expand_with_extensions(&entries, &config.extensions);
             }
 
@@ -503,9 +514,27 @@ async fn run_single_scan(
     // recursion on pure POST-body fuzzing (e.g. a login bruteforce with
     // -d \"user=admin&pass=FUZZ\" and no FUZZ in the URL at all --
     // appending /FUZZ to the login endpoint would make no sense).
-    let keyword_in_url  = template.url.contains(keyword) || template.url.contains(&keyword.to_lowercase());
-    let keyword_in_host = template.headers.iter()
-        .any(|(k, v)| k.eq_ignore_ascii_case("host") && (v.contains(keyword) || v.contains(&keyword.to_lowercase())));
+    let keyword_lower = keyword.to_lowercase();
+    let has_kw = |s: &str| s.contains(keyword) || s.contains(&keyword_lower);
+
+    let mut keyword_in_path = false;
+    let mut keyword_in_host_part = false;
+    if let Ok(parsed_url) = url::Url::parse(&template.url) {
+        if let Some(host_str) = parsed_url.host_str() {
+            if has_kw(host_str) {
+                keyword_in_host_part = true;
+            }
+        }
+        if has_kw(parsed_url.path()) || parsed_url.query().map_or(false, |q| has_kw(q)) {
+            keyword_in_path = true;
+        }
+    } else {
+        keyword_in_path = has_kw(&template.url);
+    }
+
+    let keyword_in_url = keyword_in_path;
+    let keyword_in_host = keyword_in_host_part || template.headers.iter()
+        .any(|(k, v)| k.eq_ignore_ascii_case("host") && has_kw(v));
 
     // Wildcard/false-positive detection: only worth the two probe
     // requests when the keyword drives an actual target lookup (URL
