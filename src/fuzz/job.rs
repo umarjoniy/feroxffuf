@@ -376,26 +376,26 @@ impl FuzzJob {
         // timeout, headers, redirect policy) -- the ONLY difference is
         // `.http1_only()` which disables ALPN H2 negotiation.
         let fuzz_client = {
-            let c = &config;
-            let header_map: reqwest::header::HeaderMap = {
-                use std::convert::TryInto;
-                (&c.headers).try_into()
-                    .unwrap_or_default()
+            let server_certs = config.server_certs.clone();
+            let client_cert = if config.client_cert.is_empty() { None } else { Some(config.client_cert.as_str()) };
+            let client_key = if config.client_key.is_empty() { None } else { Some(config.client_key.as_str()) };
+            let proxy = if config.proxy.is_empty() { None } else { Some(config.proxy.as_str()) };
+            let client_config = crate::client::ClientConfig {
+                timeout: config.timeout,
+                user_agent: &config.user_agent,
+                redirects: config.redirects,
+                insecure: config.insecure,
+                headers: &config.headers,
+                proxy,
+                server_certs: Some(server_certs),
+                client_cert,
+                client_key,
+                scope: &config.scope,
             };
-            let policy = if c.redirects {
-                reqwest::redirect::Policy::limited(10)
-            } else {
-                reqwest::redirect::Policy::none()
-            };
-            reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(c.timeout))
-                .user_agent(&c.user_agent)
-                .danger_accept_invalid_certs(c.insecure)
-                .default_headers(header_map)
-                .redirect(policy)
-                .http1_only()       // Host header works correctly in HTTP/1.1
-                .build()
-                .unwrap_or_else(|_| c.client.clone()) // fallback to normal client
+            crate::client::initialize_builder(client_config)
+                .map(|builder| builder.http1_only().build())
+                .and_then(|res| res.map_err(anyhow::Error::from))
+                .unwrap_or_else(|_| config.client.clone())
         };
 
         Ok(Self {
@@ -521,42 +521,43 @@ async fn run_single_scan(
     // recursion on pure POST-body fuzzing (e.g. a login bruteforce with
     // -d \"user=admin&pass=FUZZ\" and no FUZZ in the URL at all --
     // appending /FUZZ to the login endpoint would make no sense).
-    let keyword_lower = keyword.to_lowercase();
-    let has_kw = |s: &str| s.contains(keyword) || s.contains(&keyword_lower);
+    let has_any_kw = |s: &str| {
+        sources.iter().any(|src| {
+            let kw = &src.keyword;
+            let kw_lower = kw.to_lowercase();
+            s.contains(kw) || s.contains(&kw_lower)
+        })
+    };
 
     let mut keyword_in_path = false;
     let mut keyword_in_host_part = false;
     if let Ok(parsed_url) = url::Url::parse(&template.url) {
         if let Some(host_str) = parsed_url.host_str() {
-            if has_kw(host_str) {
+            if has_any_kw(host_str) {
                 keyword_in_host_part = true;
             }
         }
-        if has_kw(parsed_url.path()) || parsed_url.query().map_or(false, |q| has_kw(q)) {
+        if has_any_kw(parsed_url.path()) || parsed_url.query().map_or(false, |q| has_any_kw(q)) {
             keyword_in_path = true;
         }
     } else {
-        keyword_in_path = has_kw(&template.url);
+        keyword_in_path = has_any_kw(&template.url);
     }
 
     let keyword_in_url = keyword_in_path;
     let keyword_in_host = keyword_in_host_part || template.headers.iter()
-        .any(|(k, v)| k.eq_ignore_ascii_case("host") && has_kw(v));
+        .any(|(k, v)| k.eq_ignore_ascii_case("host") && has_any_kw(v));
 
-    // Wildcard/false-positive detection: only worth the two probe
-    // requests when the keyword drives an actual target lookup (URL
-    // path/query, or the Host header for vhost fuzzing). Skipped
-    // entirely for pure POST-body/header param fuzzing, where "does a
-    // random word return the same response" isn't a meaningful check.
     if keyword_in_url || keyword_in_host {
+        let placeholders = provider.keywords();
         if expand_methods {
             for m in &methods {
                 let mut tmpl = template.clone();
                 tmpl.method = m.clone();
-                detect_and_register_wildcard(&handles, &tmpl, keyword, &fuzz_client).await;
+                detect_and_register_wildcard(&handles, &tmpl, &placeholders, &fuzz_client).await;
             }
         } else {
-            detect_and_register_wildcard(&handles, template, keyword, &fuzz_client).await;
+            detect_and_register_wildcard(&handles, template, &placeholders, &fuzz_client).await;
         }
     }
 

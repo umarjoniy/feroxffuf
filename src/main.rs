@@ -346,9 +346,12 @@ async fn wrapped_main(config: Arc<Configuration>) -> Result<()> {
             }
         }
 
+        TermInputHandler::initialize(handles.clone());
+
         let job = fuzz::job::FuzzJob::from_config_with_handles(&config, handles.clone()).await
             .unwrap_or_else(|e| { eprintln!("[!] FuzzJob: {e}"); std::process::exit(1); });
         job.run().await?;
+        SCAN_COMPLETE.store(true, Ordering::Relaxed);
         handles.output.send(Exit)?;
         handles.stats.tx.send(Exit).unwrap_or_default();
         handles.filters.tx.send(Exit).unwrap_or_default();

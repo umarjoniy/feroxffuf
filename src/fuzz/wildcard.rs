@@ -59,10 +59,10 @@ fn random_probe_word() -> String {
 /// probe request fails outright (e.g. target unreachable) -- that's the
 /// real scan's problem to surface, not this function's job to guess at.
 pub async fn detect_and_register_wildcard(
-    handles:     &Arc<Handles>,
-    template:    &RequestTemplate,
-    keyword:     &str,
-    fuzz_client: &reqwest::Client,
+    handles:      &Arc<Handles>,
+    template:     &RequestTemplate,
+    placeholders: &[String],
+    fuzz_client:  &reqwest::Client,
 ) {
     if handles.config.dont_filter {
         return;
@@ -71,8 +71,10 @@ pub async fn detect_and_register_wildcard(
     let mut signatures: Vec<(u16, u64, usize, usize)> = Vec::with_capacity(2);
 
     for _ in 0..2 {
-        let word = random_probe_word();
-        let input: InputMap = std::iter::once((keyword.to_string(), word.into_bytes())).collect();
+        let mut input = InputMap::new();
+        for ph in placeholders {
+            input.insert(ph.clone(), random_probe_word().into_bytes());
+        }
         let req = prepare(template, &input);
 
         let Ok(method) = reqwest::Method::from_bytes(req.method.as_bytes()) else { return; };
@@ -183,7 +185,7 @@ mod tests {
             body:    vec![],
         };
 
-        detect_and_register_wildcard(&handles, &template, "FUZZ", &handles.config.client).await;
+        detect_and_register_wildcard(&handles, &template, &[ "FUZZ".to_string() ], &handles.config.client).await;
 
         let registered = handles.filters.data.filters.read().unwrap().len();
         assert_eq!(registered, 1, "a wildcard filter should have been registered");
@@ -236,7 +238,7 @@ mod tests {
             body:    vec![],
         };
 
-        detect_and_register_wildcard(&handles, &template, "FUZZ", &handles.config.client).await;
+        detect_and_register_wildcard(&handles, &template, &[ "FUZZ".to_string() ], &handles.config.client).await;
 
         let registered = handles.filters.data.filters.read().unwrap().len();
         assert_eq!(registered, 0, "an unreachable target must not register a filter");
@@ -264,7 +266,7 @@ mod tests {
             body:    vec![],
         };
 
-        detect_and_register_wildcard(&handles, &template, "FUZZ", &handles.config.client).await;
+        detect_and_register_wildcard(&handles, &template, &[ "FUZZ".to_string() ], &handles.config.client).await;
 
         mock.assert_hits(0); // --dont-filter must skip probing, not just skip registering
         let registered = handles.filters.data.filters.read().unwrap().len();

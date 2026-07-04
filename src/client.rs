@@ -67,9 +67,9 @@ where
     }
 }
 
-/// Create and return an instance of [reqwest::Client](https://docs.rs/reqwest/latest/reqwest/struct.Client.html)
+/// Create and return an instance of [reqwest::ClientBuilder](https://docs.rs/reqwest/latest/reqwest/struct.ClientBuilder.html)
 /// with optional scope-aware redirect handling
-pub fn initialize<I>(config: ClientConfig<'_, I>) -> Result<Client>
+pub fn initialize_builder<I>(config: ClientConfig<'_, I>) -> Result<reqwest::ClientBuilder>
 where
     I: IntoIterator,
     I::Item: AsRef<Path> + std::fmt::Debug,
@@ -126,7 +126,17 @@ where
         }
     }
 
-    Ok(client.build()?)
+    Ok(client)
+}
+
+/// Create and return an instance of [reqwest::Client](https://docs.rs/reqwest/latest/reqwest/struct.Client.html)
+/// with optional scope-aware redirect handling
+pub fn initialize<I>(config: ClientConfig<'_, I>) -> Result<Client>
+where
+    I: IntoIterator,
+    I::Item: AsRef<Path> + std::fmt::Debug,
+{
+    Ok(initialize_builder(config)?.build()?)
 }
 
 #[cfg(test)]
