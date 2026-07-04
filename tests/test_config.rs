@@ -13,7 +13,7 @@ fn read_in_config_file_for_settings() -> Result<(), Box<dyn std::error::Error>> 
 
     let (tmp_dir, file) = setup_tmp_directory(&["threads = 37".to_string()], "ferox-config.toml")?;
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .current_dir(&tmp_dir)
         .arg("--url")
         .arg(srv.url("/"))

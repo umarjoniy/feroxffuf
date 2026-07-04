@@ -600,7 +600,7 @@ pub fn parse_request_file(config: &mut Configuration) -> Result<()> {
 ///
 pub fn preconfig_log(level: LevelFilter, message: String) {
     let log = FeroxMessage {
-        module: "feroxbuster::config".to_owned(),
+        module: "feroxffuf::config".to_owned(),
         level: level.as_str().to_owned(),
         message,
         ..Default::default()

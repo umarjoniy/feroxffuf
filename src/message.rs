@@ -59,7 +59,7 @@ impl FeroxSerialize for FeroxMessage {
     ///   "message": "Sent https://localhost/api to file handler",
     ///   "level": "DEBUG",
     ///   "time_offset": 0.86333454,
-    ///   "module": "feroxbuster::reporter"
+    ///   "module": "feroxffuf::reporter"
     /// }\n
     fn as_json(&self) -> anyhow::Result<String> {
         let mut json = serde_json::to_string(&self).with_context(|| {

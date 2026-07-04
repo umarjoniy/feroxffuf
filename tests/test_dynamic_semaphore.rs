@@ -1,4 +1,4 @@
-use feroxbuster::sync::DynamicSemaphore;
+use feroxffuf::sync::DynamicSemaphore;
 /// Integration tests for DynamicSemaphore
 ///
 /// These tests verify the complete functionality of the DynamicSemaphore

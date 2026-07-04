@@ -26,7 +26,7 @@ fn extractor_finds_absolute_url() -> Result<(), Box<dyn std::error::Error>> {
         then.status(200);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -61,7 +61,7 @@ fn extractor_finds_absolute_url_to_different_domain() -> Result<(), Box<dyn std:
             .body("\"http://localhost/homepage/assets/img/icons/handshake.svg\"");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -101,7 +101,7 @@ fn extractor_finds_relative_url() -> Result<(), Box<dyn std::error::Error>> {
         then.status(200);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -149,7 +149,7 @@ fn extractor_finds_same_relative_url_twice() {
         then.status(200);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -191,7 +191,7 @@ fn extractor_finds_filtered_content() -> Result<(), Box<dyn std::error::Error>> 
         then.status(200).body("im a little teapot");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -262,7 +262,7 @@ fn extractor_finds_robots_txt_links_and_displays_files_or_scans_directories() {
         then.status(403);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -336,7 +336,7 @@ fn extractor_finds_robots_txt_links_and_displays_files_non_recursive() {
         then.status(404);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -442,7 +442,7 @@ fn extractor_finds_directory_listing_links_and_displays_files() {
         then.status(200).body("im a little teapot too"); // 22
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -550,7 +550,7 @@ fn extractor_finds_directory_listing_links_and_displays_files_non_recursive() {
         then.status(200).body("im a little teapot too"); // 22
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -605,7 +605,7 @@ fn extractor_recurses_into_403_directories() -> Result<(), Box<dyn std::error::E
         then.status(403);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -676,7 +676,7 @@ fn robots_text_extraction_doesnt_run_with_dont_extract_links() {
         then.status(404);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")

@@ -25,7 +25,7 @@ fn filters_status_code_should_filter_response() {
         then.status(200).body("this is also a test of some import");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -71,7 +71,7 @@ fn filters_lines_should_filter_response() {
             .body("this is also a test of some import\nwith 2 lines, no less");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -116,7 +116,7 @@ fn filters_words_should_filter_response() {
             .body("this is also a test of some import\nwith 2 lines, no less");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -161,7 +161,7 @@ fn filters_size_should_filter_response() {
             .body("this is also a test of some import\nwith 2 lines, no less");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -219,7 +219,7 @@ fn filters_similar_should_filter_response() {
         then.status(200).body(mutated);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -262,7 +262,7 @@ fn collect_backups_should_be_filtered() {
             .body("im a backup file, but filtered out because im not 200");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -311,7 +311,7 @@ fn filters_regex_should_filter_response_based_on_headers() {
             .body("this is also a test");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")

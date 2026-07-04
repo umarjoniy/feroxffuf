@@ -18,7 +18,7 @@ fn deny_list_works_during_with_a_normal_scan() {
         then.status(200).body("this is a test");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -54,7 +54,7 @@ fn deny_list_works_during_extraction() {
         then.status(200);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -108,7 +108,7 @@ fn deny_list_works_during_recursion() {
             .body("this is a test and is more bytes than other ones");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -177,7 +177,7 @@ fn deny_list_works_during_recursion_with_inverted_parents() {
             .body("this is a test and is more bytes than other ones");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/js"))
         .arg("--wordlist")
@@ -219,7 +219,7 @@ fn deny_list_prevents_regex_that_denies_base_url() {
         then.status(200).body("this is a test");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -252,7 +252,7 @@ fn deny_list_prevents_url_that_denies_base_url() {
         then.status(200).body("this is a test");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")

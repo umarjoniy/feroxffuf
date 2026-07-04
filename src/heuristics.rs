@@ -211,7 +211,7 @@ impl HeuristicTests {
                 message: msg.clone(),
                 level: "MSG".to_string(),
                 time_offset: 0.0,
-                module: "feroxbuster::heuristics".to_string(),
+                module: "feroxffuf::heuristics".to_string(),
             };
             self.handles
                 .output

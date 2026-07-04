@@ -20,7 +20,7 @@ fn response_size_limit_small_response_not_truncated() {
         then.status(200).body(small_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -55,7 +55,7 @@ fn response_size_limit_large_response_truncated() {
         then.status(200).body(&large_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -108,7 +108,7 @@ fn response_size_limit_mixed_response_sizes() {
         then.status(200).body(&large_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -171,7 +171,7 @@ fn response_size_limit_default_4mb() {
         then.status(200).body(&body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -203,7 +203,7 @@ fn response_size_limit_very_small_limit() {
         then.status(200).body(body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -238,7 +238,7 @@ fn response_size_limit_with_redirects() {
             .body(&large_redirect_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -276,7 +276,7 @@ fn response_size_limit_with_error_responses() {
         then.status(500).body(&large_error_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -312,7 +312,7 @@ fn response_size_limit_json_output_includes_truncated_field() {
         then.status(200).body(&large_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -343,7 +343,7 @@ fn response_size_limit_json_output_includes_truncated_field() {
 fn response_size_limit_shows_in_banner() {
     let (tmp_dir, file) = setup_tmp_directory(&["test".to_string()], "wordlist").unwrap();
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg("http://127.0.0.1:1") // Non-existent server to trigger quick exit
         .arg("--wordlist")
@@ -377,7 +377,7 @@ fn response_size_limit_exact_limit() {
         then.status(200).body(&exact_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -416,7 +416,7 @@ fn response_size_limit_from_config_file() {
         then.status(200).body(&large_body);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .current_dir(tmp_dir.path())
         .arg("--url")
         .arg(srv.url("/"))

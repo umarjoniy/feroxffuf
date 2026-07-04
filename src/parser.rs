@@ -887,7 +887,7 @@ mod tests {
     /// initialize parser, expect a clap::App returned
     fn parser_initialize_gives_defaults() {
         let app = initialize();
-        assert_eq!(app.get_name(), "feroxbuster");
+        assert_eq!(app.get_name(), "feroxffuf");
     }
 
     #[test]

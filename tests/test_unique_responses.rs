@@ -27,7 +27,7 @@ fn word_and_status_makes_a_response_unique_and_isnt_seen() -> Result<(), Box<dyn
             .body(srv.url("this is a word count supplier"));
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -69,7 +69,7 @@ fn bytes_and_status_makes_a_redirect_response_unique_and_isnt_seen(
             .body(srv.url("this is a word count supplier")); // redirect + same body
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")

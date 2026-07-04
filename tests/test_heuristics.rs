@@ -13,7 +13,7 @@ use utils::{setup_tmp_directory, teardown_tmp_directory};
 fn test_single_target_cannot_connect() -> Result<(), Box<dyn std::error::Error>> {
     let (tmp_dir, file) = setup_tmp_directory(&["LICENSE".to_string()], "wordlist")?;
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg("http://fjdksafjkdsajfkdsajkfdsajkfsdjkdsfdsafdsafdsajkr3l2ajfdskafdsjk")
         .arg("--wordlist")
@@ -37,7 +37,7 @@ fn test_two_targets_cannot_connect() -> Result<(), Box<dyn std::error::Error>> {
     let urls = vec![not_real.clone(), not_real];
     let (tmp_dir, file) = setup_tmp_directory(&urls, "wordlist")?;
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--stdin")
         .arg("--wordlist")
         .arg(file.as_os_str())
@@ -69,7 +69,7 @@ fn test_one_good_and_one_bad_target_scan_succeeds() -> Result<(), Box<dyn std::e
         then.status(200).body("this is a test");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--stdin")
         .arg("--wordlist")
         .arg(file.as_os_str())
@@ -94,7 +94,7 @@ fn test_one_good_and_one_bad_target_scan_succeeds() -> Result<(), Box<dyn std::e
 fn test_single_target_cannot_connect_due_to_ssl_errors() -> Result<(), Box<dyn std::error::Error>> {
     let (tmp_dir, file) = setup_tmp_directory(&["LICENSE".to_string()], "wordlist")?;
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg("https://expired.badssl.com")
         .arg("--wordlist")
@@ -129,7 +129,7 @@ fn test_two_good_targets_scan_succeeds() -> Result<(), Box<dyn std::error::Error
         then.status(403).body("this also is a test");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--stdin")
         .arg("--wordlist")
         .arg(file.as_os_str())
@@ -163,7 +163,7 @@ fn test_static_wildcard_request_found() -> Result<(), Box<dyn std::error::Error>
         then.status(200).body("this is a test");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -199,7 +199,7 @@ fn heuristics_static_wildcard_request_with_dont_filter() -> Result<(), Box<dyn s
         then.status(200).body("this is a test");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -282,7 +282,7 @@ fn heuristics_wildcard_test_with_two_static_wildcards_with_silent_enabled(
             .body("this is a testAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -333,7 +333,7 @@ fn heuristics_wildcard_test_that_auto_filtering_403s_still_allows_for_recursion_
         then.status(200);
     });
 
-    let cmd = Command::new(cargo_bin!("feroxbuster"))
+    let cmd = Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")

@@ -49,7 +49,7 @@ fn auto_bail_cancels_scan_with_403s() {
             .body("these guys need to be 403 in order to trigger 90% threshold");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -130,7 +130,7 @@ fn auto_bail_cancels_scan_with_429s() {
             .body("these guys need to be 403 in order to trigger 90% threshold");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -212,7 +212,7 @@ fn auto_tune_slows_scan_with_429s() {
 
     let start = Instant::now();
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -275,7 +275,7 @@ fn auto_tune_slows_scan_with_403s() {
 
     let start = Instant::now();
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -339,7 +339,7 @@ fn auto_tune_slows_scan_with_general_errors() {
 
     let start = Instant::now();
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")

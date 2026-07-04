@@ -1,5 +1,5 @@
 [package]
-name = "feroxbuster"
+name = "feroxffuf"
 version = "2.13.1"
 authors = ["Ben 'epi' Risher (@epi052)"]
 license = "MIT"

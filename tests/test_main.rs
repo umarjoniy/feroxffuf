@@ -18,7 +18,7 @@ fn main_use_root_owned_file_as_wordlist() {
         then.status(200).body("this is a test");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -42,7 +42,7 @@ fn main_use_empty_wordlist() -> Result<(), Box<dyn std::error::Error>> {
         then.status(200).body("this is a test");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -65,7 +65,7 @@ fn main_use_empty_stdin_targets() -> Result<(), Box<dyn std::error::Error>> {
 
     // get_targets is called before scan, so the empty wordlist shouldn't trigger
     // the 'Did not find any words' error
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--stdin")
         .arg("--wordlist")
         .arg(file.as_os_str())
@@ -104,7 +104,7 @@ fn main_parallel_spawns_children() -> Result<(), Box<dyn std::error::Error>> {
     let (tgt_tmp_dir, targets) =
         setup_tmp_directory(&[t1.url("/"), t2.url("/"), t3.url("/")], "targets")?;
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .env("RUST_LOG", "trace")
         .arg("--stdin")
         .arg("--parallel")
@@ -166,7 +166,7 @@ fn main_parallel_creates_output_directory() -> Result<(), Box<dyn std::error::Er
     let (tgt_tmp_dir, targets) =
         setup_tmp_directory(&[t1.url("/"), t2.url("/"), t3.url("/")], "targets")?;
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--stdin")
         .arg("--quiet")
         .arg("--parallel")
@@ -270,7 +270,7 @@ fn main_download_wordlist_from_url() -> Result<(), Box<dyn std::error::Error>> {
         then.status(200);
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .current_dir(&tmp_dir)
         .arg("--url")
         .arg(srv.url("/"))

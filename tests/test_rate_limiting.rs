@@ -65,7 +65,7 @@ fn scenario_high_403_rate() {
         then.status(403).body("Forbidden");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -125,7 +125,7 @@ fn scenario_high_429_rate() {
         then.status(429).body("Too Many Requests");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -191,7 +191,7 @@ fn scenario_recovery_pattern() {
         then.status(403).body("Forbidden");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -266,7 +266,7 @@ fn scenario_mixed_steady_state() {
         then.status(429).body("Too Many Requests");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")
@@ -338,7 +338,7 @@ fn scenario_capped_auto_tune() {
         then.status(403).body("Forbidden");
     });
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--url")
         .arg(srv.url("/"))
         .arg("--wordlist")

@@ -16,7 +16,7 @@ use std::process::Command;
 /// the new behavior we expect to see is to print the long form help message, of which
 /// Ludicrous speed... go! is near the bottom of that output, so we can test for that
 fn parser_incorrect_param_with_tack_tack_help() {
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("-fc")
         .arg("--help")
         .assert()
@@ -37,7 +37,7 @@ fn parser_incorrect_param_with_tack_tack_help() {
 /// the new behavior we expect to see is to print the short form help message, of which
 /// "[CAUTION] 4 -v's is probably too much" is near the bottom of that output, so we can test for that
 fn parser_incorrect_param_with_tack_h() {
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("-fc")
         .arg("-h")
         .assert()

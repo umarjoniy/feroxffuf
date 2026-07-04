@@ -69,7 +69,7 @@ fn resume_scan_works() {
 
     let (tmp_dir2, state_file) = setup_tmp_directory(&[state_file_contents], "state-file").unwrap();
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("-vvv")
         .arg("--resume-from")
         .arg(state_file.as_os_str())
@@ -116,7 +116,7 @@ fn time_limit_enforced_when_specified() {
     let lower_bound = time::Duration::new(5, 0);
     let upper_bound = time::Duration::new(6, 0);
 
-    Command::new(cargo_bin!("feroxbuster"))
+    Command::new(cargo_bin!("feroxffuf"))
         .arg("--stdin")
         .arg("-vv")
         .arg("--wordlist")
