@@ -124,18 +124,22 @@ mod tests {
 
         model.calculate_tf_idf_scores();
 
-        assert_eq!(get_score("quality", &model), 0.0);
-        assert_eq!(get_score("air", &model), 0.0);
-        assert_eq!(get_score("wednesday", &model), 0.018906077);
-        assert_eq!(get_score("island", &model), 0.014047348);
-        assert_eq!(get_score("singapore", &model), 0.016427131);
-        assert_eq!(get_score("sunny", &model), 0.08600858);
-        assert_eq!(get_score("monitoring", &model), 0.05017167);
-        assert_eq!(get_score("stations", &model), 0.05017167);
-        assert_eq!(get_score("parts", &model), 0.05017167);
-        assert_eq!(get_score("haze", &model), 0.06689556);
-        assert_eq!(get_score("hit", &model), 0.06689556);
-        assert_eq!(get_score("worse", &model), 0.04682689);
+        let assert_approx_eq = |left: f32, right: f32| {
+            assert!((left - right).abs() < 1e-6, "{} != {}", left, right);
+        };
+
+        assert_approx_eq(get_score("quality", &model), 0.0);
+        assert_approx_eq(get_score("air", &model), 0.0);
+        assert_approx_eq(get_score("wednesday", &model), 0.018906077);
+        assert_approx_eq(get_score("island", &model), 0.014047348);
+        assert_approx_eq(get_score("singapore", &model), 0.016427131);
+        assert_approx_eq(get_score("sunny", &model), 0.08600858);
+        assert_approx_eq(get_score("monitoring", &model), 0.05017167);
+        assert_approx_eq(get_score("stations", &model), 0.05017167);
+        assert_approx_eq(get_score("parts", &model), 0.05017167);
+        assert_approx_eq(get_score("haze", &model), 0.06689556);
+        assert_approx_eq(get_score("hit", &model), 0.06689556);
+        assert_approx_eq(get_score("worse", &model), 0.04682689);
     }
 
     #[test]

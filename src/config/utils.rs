@@ -95,6 +95,10 @@ pub(super) fn wordlist() -> String {
     String::from(DEFAULT_WORDLIST)
 }
 
+pub(super) fn default_fuzz_mode() -> String { "clusterbomb".to_string() }
+pub(super) fn default_fuzz_recurse_depth() -> usize { 4 }
+pub(super) fn default_fuzz_recurse_status() -> Vec<u16> { vec![200, 301, 302, 307, 308] }
+
 /// default user-agent
 pub(super) fn user_agent() -> String {
     format!("feroxbuster/{VERSION}")

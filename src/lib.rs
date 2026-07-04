@@ -28,6 +28,7 @@ pub mod utils;
 mod extractor;
 mod macros;
 mod url;
+pub mod fuzz;
 mod response;
 mod message;
 mod nlp;

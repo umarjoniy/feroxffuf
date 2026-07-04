@@ -71,10 +71,14 @@ _feroxbuster() {
 '--rate-limit=[Limit number of requests per second (per directory) (default\: 0, i.e. no limit)]:RATE_LIMIT:_default' \
 '--response-size-limit=[Limit size of response body to read in bytes (default\: 4MB)]:BYTES:_default' \
 '--time-limit=[Limit total run time of all scans (ex\: --time-limit 10m)]:TIME_SPEC:_default' \
-'-w+[Path or URL of the wordlist]:FILE:_files' \
-'--wordlist=[Path or URL of the wordlist]:FILE:_files' \
-'-B+[Automatically request likely backup extensions for "found" urls (default\: ~, .bak, .bak2, .old, .1)]' \
-'--collect-backups=[Automatically request likely backup extensions for "found" urls (default\: ~, .bak, .bak2, .old, .1)]' \
+'*-w+[Wordlist file. Append \:KEYWORD to set a custom fuzzing placeholder. Default keyword is FUZZ. Repeatable for multi-keyword modes\: -w list.txt               (keyword = FUZZ) -w users.txt\:USER         (keyword = USER) -w users.txt\:USER -w pass.txt\:PASS  (pitchfork / cluster-bomb)]:FILE[:KEYWORD]:_files' \
+'*--wordlist=[Wordlist file. Append \:KEYWORD to set a custom fuzzing placeholder. Default keyword is FUZZ. Repeatable for multi-keyword modes\: -w list.txt               (keyword = FUZZ) -w users.txt\:USER         (keyword = USER) -w users.txt\:USER -w pass.txt\:PASS  (pitchfork / cluster-bomb)]:FILE[:KEYWORD]:_files' \
+'--mode=[Fuzzing attack mode (active when FUZZ keyword is present)\: clusterbomb  cartesian product of all wordlists (default) pitchfork    parallel zip, stops at shortest list sniper       one FUZZ position at a time, single wordlist]:MODE:(clusterbomb pitchfork sniper)' \
+'--fuzz-recurse-depth=[Maximum recursion depth in fuzz mode (default\: 4)]:DEPTH:_default' \
+'--fuzz-recurse-status=[Comma-separated status codes that trigger recursion Default\: 200,301,302,307,308]:STATUS[,STATUS]:_default' \
+'--fuzz-recurse-match=[Regex matched against response URL to trigger recursion e.g. --fuzz-recurse-match '\''/dir/\$'\'' to recurse only on trailing-slash responses]:REGEX:_default' \
+'-B+[Automatically request likely backup extensions for "found" urls (default\: ~, .bak, .bak2, .old, .1)]:: :_default' \
+'--collect-backups=[Automatically request likely backup extensions for "found" urls (default\: ~, .bak, .bak2, .old, .1)]:: :_default' \
 '*-I+[File extension(s) to Ignore while collecting extensions (only used with --collect-extensions)]:FILE_EXTENSION:_default' \
 '*--dont-collect=[File extension(s) to Ignore while collecting extensions (only used with --collect-extensions)]:FILE_EXTENSION:_default' \
 '-o+[Output file to write results to (use w/ --json for JSON entries)]:FILE:_files' \
@@ -101,6 +105,8 @@ _feroxbuster() {
 '-e[Extract links from response body (html, javascript, etc...); make new requests based on findings (default\: true)]' \
 '--extract-links[Extract links from response body (html, javascript, etc...); make new requests based on findings (default\: true)]' \
 '--dont-extract-links[Don'\''t extract links from response body (html, javascript, etc...)]' \
+'--fuzz-recurse[Enable recursion in fuzz mode (off by default). Path mode\: found dirs queued as <dir>/<KEYWORD>. VHost mode (with --fuzz-recurse-vhost)\: found host queued as <KEYWORD>.<host>.]' \
+'--fuzz-recurse-vhost[When fuzzing Host header, recurse into discovered subdomains\: e.g. Host\: FUZZ.example.com finds api.example.com next round\: Host\: FUZZ.api.example.com]' \
 '(--auto-bail)--auto-tune[Automatically lower scan rate when an excessive amount of errors are encountered]' \
 '--auto-bail[Automatically stop scanning when an excessive amount of errors are encountered]' \
 '-D[Don'\''t auto-filter wildcard responses]' \

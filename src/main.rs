@@ -30,7 +30,7 @@ use feroxbuster::{
         FiltersHandler, Handles, ScanHandler, StatsHandler, Tasks, TermInputHandler,
         TermOutHandler, SCAN_COMPLETE,
     },
-    filters, heuristics, logger,
+    filters, fuzz, heuristics, logger,
     progress::PROGRESS_PRINTER,
     scan_manager::{self, ScanType},
     scanner,
@@ -328,6 +328,37 @@ async fn wrapped_main(config: Arc<Configuration>) -> Result<()> {
     handles.output.send(AddHandles(handles.clone()))?;
 
     filters::initialize(handles.clone()).await?; // send user-supplied filters to the handler
+
+    // ── FUZZ MODE ────────────────────────────────────────────────────────────────
+    if fuzz::is_fuzz_mode_config(&config) {
+        // The fuzz path returns early before the normal banner/UpdateTargets block
+        // (which lives further down in main), so we print them here to give the user
+        // the same interface they'd see in a regular directory scan.
+        let fuzz_targets = vec![config.target_url.clone()];
+        handles.stats.send(UpdateTargets(fuzz_targets.clone()))?;
+
+        if matches!(config.output_level, OutputLevel::Default) {
+            let std_stderr = stderr();
+            let mut banner = Banner::new(&fuzz_targets, &config);
+            let _ = banner.check_for_updates(UPDATE_URL, handles.clone()).await;
+            if banner.print_to(std_stderr, config.clone()).is_err() {
+                eprintln!("[!] Could not print banner");
+            }
+        }
+
+        let job = fuzz::job::FuzzJob::from_config_with_handles(&config, handles.clone()).await
+            .unwrap_or_else(|e| { eprintln!("[!] FuzzJob: {e}"); std::process::exit(1); });
+        job.run().await?;
+        handles.output.send(Exit)?;
+        handles.stats.tx.send(Exit).unwrap_or_default();
+        handles.filters.tx.send(Exit).unwrap_or_default();
+        drop(handles);
+        let _ = out_task.await;
+        let _ = stats_task.await;
+        let _ = filters_task.await;
+        return Ok(());
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
 
     // create new Tasks object, each of these handles is one that will be joined on later
     let tasks = Tasks::new(out_task, stats_task, filters_task, scan_task);

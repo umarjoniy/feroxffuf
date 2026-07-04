@@ -34,7 +34,13 @@ complete -c feroxbuster -l parallel -d 'Run parallel feroxbuster instances (one 
 complete -c feroxbuster -l rate-limit -d 'Limit number of requests per second (per directory) (default: 0, i.e. no limit)' -r
 complete -c feroxbuster -l response-size-limit -d 'Limit size of response body to read in bytes (default: 4MB)' -r
 complete -c feroxbuster -l time-limit -d 'Limit total run time of all scans (ex: --time-limit 10m)' -r
-complete -c feroxbuster -s w -l wordlist -d 'Path or URL of the wordlist' -r -F
+complete -c feroxbuster -s w -l wordlist -d 'Wordlist file. Append :KEYWORD to set a custom fuzzing placeholder. Default keyword is FUZZ. Repeatable for multi-keyword modes: -w list.txt               (keyword = FUZZ) -w users.txt:USER         (keyword = USER) -w users.txt:USER -w pass.txt:PASS  (pitchfork / cluster-bomb)' -r -F
+complete -c feroxbuster -l mode -d 'Fuzzing attack mode (active when FUZZ keyword is present): clusterbomb  cartesian product of all wordlists (default) pitchfork    parallel zip, stops at shortest list sniper       one FUZZ position at a time, single wordlist' -r -f -a "clusterbomb\t''
+pitchfork\t''
+sniper\t''"
+complete -c feroxbuster -l fuzz-recurse-depth -d 'Maximum recursion depth in fuzz mode (default: 4)' -r
+complete -c feroxbuster -l fuzz-recurse-status -d 'Comma-separated status codes that trigger recursion Default: 200,301,302,307,308' -r
+complete -c feroxbuster -l fuzz-recurse-match -d 'Regex matched against response URL to trigger recursion e.g. --fuzz-recurse-match \'/dir/$\' to recurse only on trailing-slash responses' -r
 complete -c feroxbuster -s B -l collect-backups -d 'Automatically request likely backup extensions for "found" urls (default: ~, .bak, .bak2, .old, .1)' -r
 complete -c feroxbuster -s I -l dont-collect -d 'File extension(s) to Ignore while collecting extensions (only used with --collect-extensions)' -r
 complete -c feroxbuster -s o -l output -d 'Output file to write results to (use w/ --json for JSON entries)' -r -F
@@ -54,6 +60,8 @@ complete -c feroxbuster -s n -l no-recursion -d 'Do not scan recursively'
 complete -c feroxbuster -l force-recursion -d 'Force recursion attempts on all \'found\' endpoints (still respects recursion depth)'
 complete -c feroxbuster -s e -l extract-links -d 'Extract links from response body (html, javascript, etc...); make new requests based on findings (default: true)'
 complete -c feroxbuster -l dont-extract-links -d 'Don\'t extract links from response body (html, javascript, etc...)'
+complete -c feroxbuster -l fuzz-recurse -d 'Enable recursion in fuzz mode (off by default). Path mode: found dirs queued as <dir>/<KEYWORD>. VHost mode (with --fuzz-recurse-vhost): found host queued as <KEYWORD>.<host>.'
+complete -c feroxbuster -l fuzz-recurse-vhost -d 'When fuzzing Host header, recurse into discovered subdomains: e.g. Host: FUZZ.example.com finds api.example.com next round: Host: FUZZ.api.example.com'
 complete -c feroxbuster -l auto-tune -d 'Automatically lower scan rate when an excessive amount of errors are encountered'
 complete -c feroxbuster -l auto-bail -d 'Automatically stop scanning when an excessive amount of errors are encountered'
 complete -c feroxbuster -s D -l dont-filter -d 'Don\'t auto-filter wildcard responses'

@@ -572,10 +572,67 @@ pub fn initialize() -> Command {
                 .short('w')
                 .long("wordlist")
                 .value_hint(ValueHint::FilePath)
-                .value_name("FILE")
-                .help("Path or URL of the wordlist")
+                .value_name("FILE[:KEYWORD]")
+                .action(ArgAction::Append)
+                .help("Wordlist file. Append :KEYWORD to set a custom fuzzing placeholder.\n\
+                       Default keyword is FUZZ. Repeatable for multi-keyword modes:\n\
+                       -w list.txt               (keyword = FUZZ)\n\
+                       -w users.txt:USER         (keyword = USER)\n\
+                       -w users.txt:USER -w pass.txt:PASS  (pitchfork / cluster-bomb)")
                 .help_heading("Scan settings")
                 .num_args(1),
+        )
+        .arg(Arg::new("mode")
+                .long("mode")
+                .value_name("MODE")
+                .value_parser(["clusterbomb", "pitchfork", "sniper"])
+                .default_value("clusterbomb")
+                .help("Fuzzing attack mode (active when FUZZ keyword is present):\n\
+                       clusterbomb  cartesian product of all wordlists (default)\n\
+                       pitchfork    parallel zip, stops at shortest list\n\
+                       sniper       one FUZZ position at a time, single wordlist")
+                .help_heading("Scan settings")
+                .num_args(1),
+        )
+        .arg(Arg::new("fuzz-recurse")
+                .long("fuzz-recurse")
+                .action(ArgAction::SetTrue)
+                .help("Enable recursion in fuzz mode (off by default).\n\
+                       Path mode: found dirs queued as <dir>/<KEYWORD>.\n\
+                       VHost mode (with --fuzz-recurse-vhost): found host queued as <KEYWORD>.<host>.")
+                .help_heading("Scan settings"),
+        )
+        .arg(Arg::new("fuzz-recurse-depth")
+                .long("fuzz-recurse-depth")
+                .value_name("DEPTH")
+                .default_value("4")
+                .help("Maximum recursion depth in fuzz mode (default: 4)")
+                .help_heading("Scan settings")
+                .num_args(1),
+        )
+        .arg(Arg::new("fuzz-recurse-status")
+                .long("fuzz-recurse-status")
+                .value_name("STATUS[,STATUS]")
+                .help("Comma-separated status codes that trigger recursion\n\
+Default: 200,301,302,307,308")
+                .help_heading("Scan settings")
+                .num_args(1),
+        )
+        .arg(Arg::new("fuzz-recurse-match")
+                .long("fuzz-recurse-match")
+                .value_name("REGEX")
+                .help("Regex matched against response URL to trigger recursion\n\
+e.g. --fuzz-recurse-match \'/dir/$\' to recurse only on trailing-slash responses")
+                .help_heading("Scan settings")
+                .num_args(1),
+        )
+        .arg(Arg::new("fuzz-recurse-vhost")
+                .long("fuzz-recurse-vhost")
+                .action(ArgAction::SetTrue)
+                .help("When fuzzing Host header, recurse into discovered subdomains:\n\
+                       e.g. Host: FUZZ.example.com finds api.example.com\n\
+                       next round: Host: FUZZ.api.example.com")
+                .help_heading("Scan settings"),
         ).arg(
             Arg::new("auto_tune")
                 .long("auto-tune")

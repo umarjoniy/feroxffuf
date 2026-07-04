@@ -1,5 +1,6 @@
 use super::utils::{
-    backup_extensions, depth, determine_requester_policy, extract_links, ignored_extensions,
+    backup_extensions, default_fuzz_mode, default_fuzz_recurse_depth, default_fuzz_recurse_status,
+    depth, determine_requester_policy, extract_links, ignored_extensions,
     methods, parse_request_file, report_and_exit, request_protocol, response_size_limit,
     save_state, serialized_type, split_header, split_query, status_codes, threads, timeout,
     user_agent, wordlist, OutputLevel, RequesterPolicy,
@@ -96,6 +97,34 @@ pub struct Configuration {
     /// Path to the wordlist
     #[serde(default = "wordlist")]
     pub wordlist: String,
+
+    /// Raw -w arguments (path or path:KEYWORD). Populated in fuzz mode.
+    #[serde(default)]
+    pub fuzz_wordlists: Vec<String>,
+
+    /// Fuzzing attack mode: clusterbomb | pitchfork | sniper
+    #[serde(default = "default_fuzz_mode")]
+    pub fuzz_mode: String,
+
+    /// Enable recursion in fuzz mode
+    #[serde(default)]
+    pub fuzz_recurse: bool,
+
+    /// Max recursion depth in fuzz mode
+    #[serde(default = "default_fuzz_recurse_depth")]
+    pub fuzz_recurse_depth: usize,
+
+    /// Status codes triggering fuzz-mode recursion
+    #[serde(default = "default_fuzz_recurse_status")]
+    pub fuzz_recurse_status: Vec<u16>,
+
+    /// Regex pattern triggering fuzz-mode recursion
+    #[serde(default)]
+    pub fuzz_recurse_match: String,
+
+    /// Recurse discovered vhosts in fuzz mode
+    #[serde(default)]
+    pub fuzz_recurse_vhost: bool,
 
     /// Path to the config file used
     #[serde(default)]
@@ -465,6 +494,13 @@ impl Default for Configuration {
             depth: depth(),
             threads: threads(),
             wordlist: wordlist(),
+            fuzz_wordlists: Vec::new(),
+            fuzz_mode: default_fuzz_mode(),
+            fuzz_recurse: false,
+            fuzz_recurse_depth: default_fuzz_recurse_depth(),
+            fuzz_recurse_status: default_fuzz_recurse_status(),
+            fuzz_recurse_match: String::new(),
+            fuzz_recurse_vhost: false,
             dont_collect: ignored_extensions(),
             backup_extensions: backup_extensions(),
             unique: false,
@@ -686,7 +722,31 @@ impl Configuration {
             "response_size_limit",
             usize
         );
-        update_config_if_present!(&mut config.wordlist, args, "wordlist", String);
+        // ── fuzz multi-wordlist parsing ─────────────────────────────────────────
+        if let Some(wl_iter) = args.get_many::<String>("wordlist") {
+            let wl_vec: Vec<String> = wl_iter.cloned().collect();
+            if let Some(first) = wl_vec.first() {
+                let path = match first.rfind(':') {
+                    Some(p) if !first[p+1..].contains('/')
+                              && !first[p+1..].contains('\\') => &first[..p],
+                    _ => first.as_str(),
+                };
+                config.wordlist = path.to_string();
+            }
+            config.fuzz_wordlists = wl_vec;
+        }
+        if let Some(mode) = args.get_one::<String>("mode") {
+            if mode != "clusterbomb" { config.fuzz_mode = mode.clone(); }
+        }
+        if came_from_cli!(args, "fuzz-recurse") { config.fuzz_recurse = true; }
+        if came_from_cli!(args, "fuzz-recurse-vhost") { config.fuzz_recurse_vhost = true; }
+        update_config_with_num_type_if_present!(&mut config.fuzz_recurse_depth, args, "fuzz-recurse-depth", usize);
+        update_config_if_present!(&mut config.fuzz_recurse_match, args, "fuzz-recurse-match", String);
+        if let Some(raw) = args.get_one::<String>("fuzz-recurse-status") {
+            config.fuzz_recurse_status = raw.split(',')
+                .filter_map(|s| s.trim().parse::<u16>().ok()).collect();
+        }
+        // ────────────────────────────────────────────────────────────────────────
         update_config_if_present!(&mut config.output, args, "output", String);
         update_config_if_present!(&mut config.debug_log, args, "debug_log", String);
         update_config_if_present!(&mut config.resume_from, args, "resume_from", String);
@@ -794,6 +854,21 @@ impl Configuration {
             }
         }
 
+        fn normalize_ipv6(url: &str) -> String {
+            let (scheme_part, host_and_path) = if let Some(scheme_end) = url.find("://") {
+                (&url[..scheme_end + 3], &url[scheme_end + 3..])
+            } else {
+                ("", url)
+            };
+            let host_part = host_and_path.split('/').next().unwrap_or("");
+            if host_part.chars().filter(|&c| c == ':').count() >= 2 && !host_part.starts_with('[') {
+                let path_part = &host_and_path[host_part.len()..];
+                format!("{}[{}]{}", scheme_part, host_part, path_part)
+            } else {
+                url.to_string()
+            }
+        }
+
         /// internal helper to parse both scope urls and target urls
         fn parse_url_with_no_base_correction(
             config: &Configuration,
@@ -802,7 +877,15 @@ impl Configuration {
             // Url::parse fails if the url is relative (ex: example.com) instead of absolute
             // (ex: https://example.com). In the case of a relative url, we can prepend
             // "https://" (or whatever the user provided to --protocol) and try again
-            match parse_url_with_raw_path(url.trim_end_matches('/')) {
+            //
+            // Additionally, bare IPv6 addresses (e.g. https://2a00:1450::1/) are not valid
+            // because the colons in the address confuse parsers. RFC-3986 requires IPv6
+            // literals to be wrapped in brackets (https://[2a00:1450::1]/). We detect this
+            // and fix it automatically so users don't have to remember the brackets.
+            let url = url.trim_end_matches('/');
+            let normalized = normalize_ipv6(url);
+
+            match parse_url_with_raw_path(&normalized) {
                 Ok(absolute) => Ok(absolute),
                 Err(err) => {
                     log::debug!("Initial url parse failed: {err}");
@@ -812,9 +895,11 @@ impl Configuration {
                     // function, meaning we'll get the actual protocol if the user specified
                     // one, otherwise it'll be the default "https")
                     let url_with_scheme =
-                        format!("{}://{}", config.protocol, url.trim_end_matches('/'));
+                        format!("{}://{}", config.protocol, normalized);
 
-                    match parse_url_with_raw_path(&url_with_scheme) {
+                    let normalized_with_scheme = normalize_ipv6(&url_with_scheme);
+
+                    match parse_url_with_raw_path(&normalized_with_scheme) {
                         Ok(url) => {
                             // successfully parsed the relative url after prepending the
                             // scheme, add it to the scope
