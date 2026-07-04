@@ -67,6 +67,76 @@
 
 ---
 
+# ⚡ feroxffuf — feroxbuster + ffuf Fuzz Mode Integration
+
+> [!IMPORTANT]
+> **feroxffuf** is a specialized fork combining the recursive directory scanning power of **[feroxbuster](https://github.com/epi052/feroxbuster)** (by Ben "epi" Risher) with the high-performance, arbitrary HTTP multi-placeholder fuzzing modes of **[ffuf](https://github.com/ffuf/ffuf)** (by Joona Hoikkala).
+>
+> 🤖 **AI-Assisted Development:** This integration, including its asynchronous concurrency architecture, H2/HTTP1.1 TLS connection routing fixes, and custom URL-rewriting deduplication, was designed, implemented, and refined using Advanced Agentic AI (Google Gemini / Antigravity pair-programming assistant).
+
+---
+
+## 💡 The Value Proposition: Why feroxffuf?
+
+| Feature | Standard `feroxbuster` | `ffuf` | **feroxffuf** |
+| :--- | :--- | :--- | :--- |
+| **Directory Recursion** | ✅ (Automatic path appending) | ❌ (None) | ✅ (Both URL path & virtual host recursion!) |
+| **Arbitrary Fuzzing** | ❌ (Only appends words to URL) | ✅ (Placeholder keyword injection) | ✅ (Placeholder replacement in Method, URL, Headers, and Body) |
+| **Advanced Fuzz Modes** | ❌ (N/A) | ✅ (Sniper, Pitchfork, Clusterbomb) | ✅ (Sniper, Pitchfork, and Clusterbomb) |
+| **Adaptive Auto-Tuning** | ✅ (Throttles on 429/403/errors) | ❌ (Static delay only) | ✅ (Auto-throttles fuzzing rates dynamically) |
+| **Interactive Terminal Menu**| ✅ (Pause, adjust threads on the fly)| ❌ (Non-interactive CLI) | ✅ (Full menu support during active fuzz runs) |
+| **Wildcard Calibration** | ✅ (Static heuristic probing) | ✅ (Probe-based filtering) | ✅ (Subdomain-level auto-calibration with display output) |
+
+---
+
+## 🛠️ How It Works (Under the Hood)
+
+1. **Placeholder Replacement (Fuzz Mode)**
+   By defining a placeholder keyword (default: `FUZZ`), the fuzzer dynamically substitutes words from your wordlist into any request field:
+   * **URL Path / Authority:** `https://FUZZ.example.com/` or `https://example.com/FUZZ`
+   * **Headers:** `-H "Host: FUZZ.example.com"` or `-H "X-Custom: FUZZ"`
+   * **Request Method:** `-X FUZZ`
+   * **Request Body:** `-d "username=admin&password=FUZZ"`
+
+2. **Advanced Concurrency & Memory Protection**
+   In combinatoric fuzzing modes (like `Clusterbomb`), running multiple wordlists can produce millions of payload combinations. Generating all payloads upfront in memory leads to out-of-memory crashes.
+   This project uses a lazy concurrency model driven by `futures::stream::unfold` piped through `.buffer_unordered(threads)`. It generates requests on-demand and keeps at most `threads` requests in memory.
+
+3. **HTTP/1.1 Forcing for Host Header Fuzzing**
+   Reqwest normally negotiates HTTP/2 (ALPN) by default. In HTTP/2, manual overrides of the `Host` header are ignored/forbidden, causing virtual host fuzzing to fail. We force connection routing via an HTTP/1.1-only client for fuzzing requests.
+
+4. **Logical URL Mapping & Deduplication**
+   To scan virtual hosts, requests are routed to a single target IP. Since the raw URL is identical across requests, standard deduplication filters would hide all but the first discovery. We dynamically rewrite the response URL to its logical hostname format (`https://subdomain.example.com/`), enabling correct deduplication and clean stdout logs.
+
+5. **Recursive Fuzzing**
+   * **Path Recursion:** Appends fuzzed sub-directories when recursion triggers.
+   * **Virtual Host Recursion (`--fuzz-recurse-vhost`):** Recursively fuzzes subdomains under discovered hosts (e.g. `FUZZ.<discovered_subdomain>.example.com`).
+
+---
+
+## 🚀 Usage Examples
+
+### 1. Subdomain / Host Header Fuzzing (Pinned IP Target)
+Find hidden virtual hosts on a single web server:
+```bash
+./feroxbuster -u https://142.250.130.113/ --fuzz-recurse-vhost -H "Host: FUZZ.google.com" --insecure -w wordlist.txt
+```
+
+### 2. URL Authority Fuzzing (DNS Resolution)
+Fuzz and connect to discovered subdomains via their real DNS IP addresses:
+```bash
+./feroxbuster -u https://FUZZ.innowise.com -w wordlist.txt --insecure
+```
+
+### 3. Request Body Fuzzing (Sniper Mode)
+Fuzz a login form using Sniper mode:
+```bash
+./feroxbuster -u https://example.com/login -d "user=admin&pass=FUZZ" --mode sniper -w wordlist.txt
+```
+
+---
+
+
 > [!TIP]
 > **Documentation has moved!** &mdash; Instead of having a 1300 line `README.md` (sorry...), feroxbuster's documentation has moved to GitHub Pages. The move to hosting documentation on Pages should make it a LOT easier to find the information you're looking for, whatever that may be. Please check it out for anything you need beyond a quick-start.
 >
