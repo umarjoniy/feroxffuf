@@ -67,7 +67,7 @@ use crate::{
         Handles,
     },
     response::FeroxResponse,
-    scan_manager::{PAUSE_SCAN, MenuCmdResult},
+    scan_manager::{PAUSE_SCAN, MenuCmdResult, FeroxScan, ScanType},
     statistics::{StatError, StatField::TotalExpected},
     utils::should_deny_url,
     fuzz::{
@@ -440,10 +440,82 @@ impl FuzzJob {
                 log::info!("Fuzz recursion depth {}: {}", depth, template.url);
             }
 
-            let discovered = run_single_scan(
-                &template, &sources, &mode, handles.clone(), &recurse,
-                &sniper_positions, &keyword, rate_limiter.clone(), fuzz_client.clone(),
-            ).await?;
+            // Estimate total requests for this scan
+            let provider: Box<dyn InputProvider> = match &mode {
+                FuzzMode::ClusterBomb => Box::new(ClusterBombProvider::new(sources.to_vec())),
+                FuzzMode::Pitchfork   => Box::new(PitchforkProvider::new(sources.to_vec())),
+                FuzzMode::Sniper => {
+                    Box::new(SniperProvider::new(sources[0].clone(), sniper_positions.to_vec())?)
+                }
+            };
+            let methods: Vec<String> = if handles.config.methods.is_empty() {
+                vec!["GET".to_string()]
+            } else {
+                handles.config.methods.clone()
+            };
+            let expand_methods = methods.len() > 1 && !template.method.contains(&keyword);
+            let method_count   = if expand_methods { methods.len() } else { 1 };
+            let total = provider.total() * method_count;
+
+            let scans = handles.ferox_scans()?;
+            let (_, ferox_scan) = scans.add_scan(
+                &template.url,
+                ScanType::Directory,
+                crate::scan_manager::ScanOrder::Initial,
+                handles.clone(),
+            );
+            ferox_scan.progress_bar().set_length(total as u64);
+
+            let template_c = template.clone();
+            let sources_c = sources.clone();
+            let mode_c = mode.clone();
+            let handles_c = handles.clone();
+            let recurse_c = recurse.clone();
+            let sniper_positions_c = sniper_positions.to_vec();
+            let keyword_c = keyword.clone();
+            let rate_limiter_c = rate_limiter.clone();
+            let fuzz_client_c = fuzz_client.clone();
+            let ferox_scan_c = ferox_scan.clone();
+
+            let (tx, rx) = tokio::sync::oneshot::channel();
+
+            let handle = tokio::spawn(async move {
+                let res = run_single_scan(
+                    &template_c,
+                    &sources_c,
+                    &mode_c,
+                    handles_c,
+                    &recurse_c,
+                    &sniper_positions_c,
+                    &keyword_c,
+                    rate_limiter_c,
+                    fuzz_client_c,
+                    ferox_scan_c,
+                ).await;
+                let _ = tx.send(res);
+            });
+
+            ferox_scan.set_task(handle).await?;
+
+            let discovered = match rx.await {
+                Ok(res) => {
+                    let active_bars = scans.number_of_bars();
+                    let _ = ferox_scan.finish(active_bars);
+                    match res {
+                        Ok(targets) => targets,
+                        Err(e) => {
+                            log::warn!("Fuzz run error: {e}");
+                            break;
+                        }
+                    }
+                }
+                Err(_) => {
+                    // Task was aborted/cancelled by user in Scan Management Menu
+                    log::info!("Fuzz scan cancelled by user: {}", template.url);
+                    let _ = ferox_scan.set_status(crate::scan_manager::ScanStatus::Cancelled);
+                    continue;
+                }
+            };
 
             if recurse.enabled && depth < recurse.max_depth {
                 for target in discovered {
@@ -466,6 +538,10 @@ impl FuzzJob {
     }
 }
 
+struct FuzzState {
+    provider: Box<dyn InputProvider + 'static>,
+}
+
 // ── Single-depth scan ─────────────────────────────────────────────────────
 
 async fn run_single_scan(
@@ -478,6 +554,7 @@ async fn run_single_scan(
     keyword:          &str,
     rate_limiter:     Option<Arc<RateLimiter>>,
     fuzz_client:      Arc<reqwest::Client>,
+    ferox_scan:       Arc<FeroxScan>,
 ) -> Result<Vec<RecurseTarget>> {
     let provider: Box<dyn InputProvider> = match mode {
         FuzzMode::ClusterBomb => Box::new(ClusterBombProvider::new(sources.to_vec())),
@@ -569,12 +646,12 @@ async fn run_single_scan(
     // the tens of millions; buffer_unordered(threads) below ensures at
     // most `threads` requests are in flight (and thus in memory) at once.
     let template = template.clone();
-    let stream = stream::unfold(provider, move |mut provider| {
+    let stream = stream::unfold(FuzzState { provider }, move |mut state| {
         let template = template.clone();
         let methods   = methods.clone();
         async move {
-            if provider.next() {
-                let value = provider.value();
+            if state.provider.next() {
+                let value = state.provider.value();
                 let reqs: Vec<PreparedRequest> = if expand_methods {
                     methods.iter().map(|m| {
                         let mut t = template.clone();
@@ -584,7 +661,7 @@ async fn run_single_scan(
                 } else {
                     vec![prepare(&template, &value)]
                 };
-                Some((reqs, provider))
+                Some((reqs, state))
             } else {
                 None
             }
@@ -593,6 +670,7 @@ async fn run_single_scan(
 
     let recurse   = recurse.clone();
     let keyword_s = keyword.to_string();
+    let ferox_scan_clone = ferox_scan.clone();
 
     let discovered: Vec<RecurseTarget> = stream
         .flat_map(stream::iter)
@@ -602,7 +680,8 @@ async fn run_single_scan(
             let kw = keyword_s.clone();
             let rl = rate_limiter.clone();
             let fc = fuzz_client.clone();
-            async move { execute_request(h, req, &r, &kw, keyword_in_url, keyword_in_host, rl, fc).await }
+            let fs = ferox_scan_clone.clone();
+            async move { execute_request(h, req, &r, &kw, keyword_in_url, keyword_in_host, rl, fc, fs).await }
         })
         .buffer_unordered(threads)
         .filter_map(|res| async move {
@@ -629,6 +708,7 @@ async fn execute_request(
     keyword_in_host: bool,
     rate_limiter:    Option<Arc<RateLimiter>>,
     fuzz_client:     Arc<reqwest::Client>,
+    ferox_scan:      Arc<FeroxScan>,
 ) -> Result<Option<RecurseTarget>> {
     // Mirrors scanner::requester::Requester::request(): --url-denylist /
     // --regex-denylist (aka --dont-scan) must be honoured in fuzz mode
@@ -639,6 +719,7 @@ async fn execute_request(
     if should_test_deny {
         if let Ok(parsed) = Url::parse(&req.url) {
             if should_deny_url(&parsed, handles.clone())? {
+                ferox_scan.progress_bar().inc(1);
                 return Ok(None);
             }
         }
@@ -695,6 +776,7 @@ async fn execute_request(
             }
             log::warn!("Request error for {}: {msg}", req.url);
             handles.stats.send(AddError(StatError::Other)).unwrap_or_default();
+            ferox_scan.progress_bar().inc(1);
             return Ok(None);
         }
     };
@@ -737,6 +819,7 @@ async fn execute_request(
     handles.stats.send(AddStatus(*ferox_resp.status())).unwrap_or_default();
 
     if handles.filters.data.should_filter_response(&ferox_resp, handles.stats.tx.clone()) {
+        ferox_scan.progress_bar().inc(1);
         return Ok(None);
     }
 
@@ -750,6 +833,7 @@ async fn execute_request(
         log::warn!("Could not send response to output: {e}");
     }
 
+    ferox_scan.progress_bar().inc(1);
     Ok(recurse_target)
 }
 

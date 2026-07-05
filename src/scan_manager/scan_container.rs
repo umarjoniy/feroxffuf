@@ -643,7 +643,7 @@ impl FeroxScans {
     /// If `FeroxScans` did not already contain the scan, return true; otherwise return false
     ///
     /// Also return a reference to the new `FeroxScan`
-    pub(super) fn add_scan(
+    pub fn add_scan(
         &self,
         url: &str,
         scan_type: ScanType,
