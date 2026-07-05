@@ -457,14 +457,28 @@ impl FuzzJob {
             let method_count   = if expand_methods { methods.len() } else { 1 };
             let total = provider.total() * method_count;
 
-            let scans = handles.ferox_scans()?;
-            let (_, ferox_scan) = scans.add_scan(
-                &template.url,
-                ScanType::Directory,
-                crate::scan_manager::ScanOrder::Initial,
-                handles.clone(),
-            );
-            ferox_scan.progress_bar().set_length(total as u64);
+            let scans_opt = handles.ferox_scans().ok();
+            let ferox_scan = if let Some(scans) = &scans_opt {
+                let (_, scan) = scans.add_scan(
+                    &template.url,
+                    ScanType::Directory,
+                    crate::scan_manager::ScanOrder::Initial,
+                    handles.clone(),
+                );
+                scan.progress_bar().set_length(total as u64);
+                scan
+            } else {
+                crate::scan_manager::FeroxScan::new(
+                    &template.url,
+                    ScanType::Directory,
+                    crate::scan_manager::ScanOrder::Initial,
+                    total as u64,
+                    handles.config.output_level,
+                    None,
+                    false,
+                    handles.clone(),
+                )
+            };
 
             let template_c = template.clone();
             let sources_c = sources.clone();
@@ -499,7 +513,7 @@ impl FuzzJob {
 
             let discovered = match rx.await {
                 Ok(res) => {
-                    let active_bars = scans.number_of_bars();
+                    let active_bars = scans_opt.as_ref().map(|s| s.number_of_bars()).unwrap_or(0);
                     let _ = ferox_scan.finish(active_bars);
                     match res {
                         Ok(targets) => targets,
@@ -1013,7 +1027,17 @@ mod tests {
         let recurse = RecurseConfig::default();
 
         let fuzz_client = Arc::new(handles.config.client.clone());
-        let result = execute_request(handles, req, &recurse, "FUZZ", false, false, None, fuzz_client).await;
+        let ferox_scan = crate::scan_manager::FeroxScan::new(
+            "http://localhost",
+            crate::scan_manager::ScanType::Directory,
+            crate::scan_manager::ScanOrder::Initial,
+            0,
+            handles.config.output_level,
+            None,
+            false,
+            handles.clone(),
+        );
+        let result = execute_request(handles, req, &recurse, "FUZZ", false, false, None, fuzz_client, ferox_scan).await;
         assert!(result.unwrap().is_none(), "denylisted URL must not produce a recursion target");
         mock.assert_hits(0);
     }
