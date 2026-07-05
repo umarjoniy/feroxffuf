@@ -157,9 +157,8 @@ impl TermInputHandler {
                 // It's guaranteed that the `read()` won't block when the `poll()`
                 // function returns `true`
 
-                if let Ok(key_pressed) = event::read() {
-                    // ignore any other keys
-                    if key_pressed == Event::Key(KeyCode::Enter.into()) {
+                if let Ok(Event::Key(key_event)) = event::read() {
+                    if key_event.code == KeyCode::Enter {
                         // if the user presses Enter, set PAUSE_SCAN to true. The interactive menu
                         // will be triggered and will handle setting PAUSE_SCAN to false
                         PAUSE_SCAN.store(true, Ordering::Release);
